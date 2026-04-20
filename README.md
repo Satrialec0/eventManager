@@ -16,6 +16,8 @@ Your **jobscout** stack (`jobscout/docker-compose.yml` on your machine) uses:
 
 If you change these in `docker-compose.yml`, update `DATABASE_URL`, this README, and `frontend/vite.config.ts` proxy targets.
 
+**Secrets:** `docker-compose.yml` only references `${POSTGRES_USER}`, `${POSTGRES_PASSWORD}`, and `${POSTGRES_DB}` — it does not contain passwords or tokens. Put real values in **project-root** `.env` (gitignored). Never commit tunnel tokens, Cloudflare credentials, or production URLs in tracked files.
+
 ## Stack
 
 - **Postgres 16** + optional **FastAPI** via Docker Compose
@@ -24,14 +26,14 @@ If you change these in `docker-compose.yml`, update `DATABASE_URL`, this README,
 
 ## Quick start
 
-1. Copy env files:
+1. Copy env files (same content in both places — root `.env` is required for `docker compose` variable substitution):
 
    ```powershell
    copy .env.example .env
    copy .env.example backend\.env
    ```
 
-   `DATABASE_URL` must use **port 5433** when talking to eventManager’s DB from Windows (see `.env.example`).
+   Set `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `POSTGRES_DB` in root `.env` (defaults in `.env.example` match local dev). `DATABASE_URL` must use **port 5433** when talking to eventManager’s DB from the host (see `.env.example`).
 
 2. Start **Postgres + API** (uvicorn in Docker):
 
@@ -85,7 +87,7 @@ If you change these in `docker-compose.yml`, update `DATABASE_URL`, this README,
 ## Backup
 
 ```powershell
-docker compose exec db pg_dump -U eventmanager eventmanager > backup.sql
+docker compose exec -T db sh -c 'pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"' > backup.sql
 ```
 
 ## Compliance

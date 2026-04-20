@@ -1,20 +1,24 @@
 # Port notes (see README):
 # - jobscout/docker-compose.yml uses host 8001 (backend) and 5432 (Postgres).
 # - This stack uses 8002 (API) and 5433 (Postgres on host) so both can run together.
+#
+# Credentials: only ${...} references here — values live in project-root `.env`
+# (gitignored). Compose loads that file for variable substitution. Never put
+# tunnel tokens, API keys, or production DB passwords in this file.
 
 services:
   db:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: eventmanager
-      POSTGRES_PASSWORD: eventmanager
-      POSTGRES_DB: eventmanager
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER in project-root .env — see .env.example}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in project-root .env}
+      POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB in project-root .env}
     ports:
       - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U eventmanager -d eventmanager"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -29,7 +33,7 @@ services:
     volumes:
       - ./backend:/app
     environment:
-      DATABASE_URL: postgresql+psycopg2://eventmanager:eventmanager@db:5432/eventmanager
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
     depends_on:
       db:
         condition: service_healthy
