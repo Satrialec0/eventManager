@@ -1,0 +1,1 @@
+"""eventManager FastAPI application."""

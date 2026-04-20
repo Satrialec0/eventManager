@@ -1,0 +1,38 @@
+# Port notes (see README):
+# - jobscout/docker-compose.yml uses host 8001 (backend) and 5432 (Postgres).
+# - This stack uses 8002 (API) and 5433 (Postgres on host) so both can run together.
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: eventmanager
+      POSTGRES_PASSWORD: eventmanager
+      POSTGRES_DB: eventmanager
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U eventmanager -d eventmanager"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build: ./backend
+    container_name: eventmanager_api
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8002 --reload
+    ports:
+      - "8002:8002"
+    working_dir: /app
+    volumes:
+      - ./backend:/app
+    environment:
+      DATABASE_URL: postgresql+psycopg2://eventmanager:eventmanager@db:5432/eventmanager
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:
